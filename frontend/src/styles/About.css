@@ -1,0 +1,47 @@
+.about-page {
+    padding: 2rem;
+    line-height: 1.6;
+    color: #333;
+    font-family: Arial, sans-serif;
+  }
+  
+  .about-page h1 {
+    font-size: 2.5rem;
+    color: #fff;
+    margin-bottom: 1rem;
+  }
+  
+  .about-page h2 {
+    font-size: 1.8rem;
+    color: #fff;
+    margin-top: 2rem;
+  }
+  
+  .about-page p {
+    margin-bottom: 1rem;
+    color: #fff;
+    text-wrap: wrap;
+    padding: 1em 2em;
+  }
+  
+  .terms-privacy {
+    margin-top: 2rem;
+    color: #fff;
+    text-wrap: wrap;
+    padding: 1em 2em;
+  }
+  
+  .mission {
+    margin-top: 2rem;
+    color: #fff;
+    text-wrap: wrap;
+    padding: 1em 2em;
+  }
+  
+  footer {
+    margin-top: 3rem;
+    font-size: 0.9rem;
+    color: #555;
+    text-align: center;
+  }
+  

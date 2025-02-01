@@ -1,0 +1,50 @@
+.translator{
+    overflow-x: hidden;
+    text-wrap: wrap;
+}
+
+.translated-p{
+    text-wrap: wrap;
+    padding: 1em;
+    border: 1px solid #fff;
+}
+
+.control-btns{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2em;
+    padding: 1em;
+}
+
+.control-btns button{
+
+    cursor: pointer;
+    padding: 0.7em;
+    border: none;
+    border-radius: 25px;
+    
+}
+.control-btns button:hover{
+    transform: scale(1.05);
+    transition: transform 0.2s ease-in-out;
+    background-color:rgb(241, 124, 56);
+}
+.lang-opt{
+    padding: 0.7em;
+    gap: 2em;
+    border: none;
+    border-radius: 25px;
+}
+.translate-btn{
+    margin-left: 2em;
+    cursor: pointer;
+    background-color: #f3bb52;
+    padding: 0.8em;
+    border: none;
+    border-radius: 25px;
+}
+.translate-btn:hover{
+    transform: scale(1.05);
+    transition: transform 0.2s ease-in-out;
+}

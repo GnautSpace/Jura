@@ -1,0 +1,25 @@
+.quote-container {
+    text-align: center;
+    background: #f8f9fa;
+    border-left: 5px solid #2c3e50;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 600px;
+    font-family: "Georgia", serif;
+    border-radius: 8px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .quote {
+    font-size: 1.5rem;
+    color: #2c3e50;
+    font-style: italic;
+  }
+  
+  .author {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #555;
+    margin-top: 10px;
+  }
+  

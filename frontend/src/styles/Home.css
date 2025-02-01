@@ -1,0 +1,54 @@
+.hero-section {
+    text-align: center;
+    padding: 5rem 2rem;
+    background-color: #f1f1f1;
+    color: #333;
+}
+
+.hero-section h1 {
+    font-size: 3rem;
+    font-weight: bold;
+}
+
+.hero-section p {
+    font-size: 1.5rem;
+    margin-top: 1rem;
+}
+
+.hero-btn {
+    padding: 0.8rem 2rem;
+    background-color:rgb(68, 81, 94);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 1.5rem;
+}
+
+.hero-btn:hover {
+    background-color: #0056b3;
+}
+
+.lexi-bot-container {
+    position: sticky;
+    top: 20px; 
+    right: 0;
+    margin-top: 2rem;
+    z-index: 10;
+}
+
+.lexi-bot-container > div {
+    position: relative;
+    display: inline-block;
+    background-color: #f1f1f1;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .lexi-bot-container {
+        display: none; 
+    }
+}
