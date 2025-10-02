@@ -44,36 +44,6 @@ Built With: HTML, CSS, React, Node.js, Express, Gemini APIs
 
 ---
 
-## Hacktoberfest
-
-Jura is part of Hacktoberfest 2025.  
-We welcome all contributors - whether you want to fix bugs, improve summarization, add features, or write documentation.
-
----
-
-## Contributing
-
-We welcome contributions! Jura is still under development, so there’s plenty of room to make an impact.
-
-You can contribute by:  
-- Adding new features – e.g., better PDF handling, enhanced TTS voices, multi-language support, case lookup, or status tracking  
-- Fixing bugs – issues with PDF parsing, summarization, or frontend glitches  
-- Improving documentation – writing guides, tutorials, or better README explanations  
-- Enhancing UI/UX – make the app more intuitive and visually appealing  
-- Optimizing performance – speed up AI processing, reduce memory usage, or handle larger files  
-- Testing – write unit tests for backend, frontend, or AI modules  
-
-### How to contribute:
-1. Fork the repo and clone it locally.  
-2. Create a feature branch for your work:  
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. Make your changes, commit with a clear message, and push to your fork.
-4. Open a pull request (PR) to the main Jura repo describing your changes.
-
-Note: Jura is not live yet, so contributions will be tested locally. Pull requests that improve functionality, add new features, or make the app more user-friendly are highly encouraged
-
 Getting Started
 1. Clone the repo
     ```bash
