@@ -28,7 +28,7 @@ function LexiBot() {
           "Content-Type": "application/json",
         },
       };
-      const response = await fetch("http://localhost:3000/chat", options);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/chat`, options);
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
       }

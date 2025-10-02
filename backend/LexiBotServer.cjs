@@ -7,6 +7,7 @@ const app = express();
 
 const corsOptions = {
   origin: "http://localhost:5173", 
+  "https://jura-flame.vercel.app/",
   methods: 'POST,GET,PUT,PATCH,DELETE',
   credentials: true,
 };
