@@ -47,7 +47,7 @@ Built With: HTML, CSS, React, Node.js, Express, Gemini APIs
 Getting Started
 1. Clone the repo
     ```bash
-    git clone https://github.com/YOUR-USERNAME/jura.git
+    git clone https://github.com/GnautSpace/Jura.git
     
     ```
 
