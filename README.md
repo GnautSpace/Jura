@@ -79,6 +79,9 @@ Getting Started
          GEMINI_API_KEY=<your-key-here>
          GEMINI_API_KEY_1=<your-key-here>
       ```
+
+## Contribution
+please check (CONTRIBUTING.md)[https://github.com/GnautSpace/Jura/blob/main/CONTRIBUTING.md]
       
-License
+## License
 This project is licensed under the MIT License — see the LICENSE file for details.
