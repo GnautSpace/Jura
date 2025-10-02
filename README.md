@@ -80,6 +80,26 @@ Getting Started
          GEMINI_API_KEY_1=<your-key-here>
       ```
 
+
+      OR
+
+   - Copy `.env.example` to `.env`
+     - **Linux / macOS**
+        ```bash
+        cd backend
+        cp .env.example .env
+        ```
+     - **Windows (PowerShell)**
+        ```powershell
+        cd backend
+        copy .env.example .env
+        ```
+     - **Windows (Git Bash / WSL)**
+        ```bash
+        cd backend
+        cp .env.example .env
+        ```
+
 ## Contribution
 please check (CONTRIBUTING.md)[https://github.com/GnautSpace/Jura/blob/main/CONTRIBUTING.md]
       
