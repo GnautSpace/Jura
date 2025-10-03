@@ -1,0 +1,98 @@
+# This is a sample GitHub Actions workflow for building and testing the Jura application
+# To use this workflow, rename this file to .github/workflows/docker-build.yml
+
+name: Docker Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Build backend image
+      run: |
+        docker build -t jura-backend:test ./backend --target development
+        
+    - name: Build frontend image
+      run: |
+        docker build -t jura-frontend:test ./frontend --target development
+        
+    - name: Verify images were created
+      run: |
+        docker images | grep jura
+        
+    - name: Test docker-compose configuration
+      run: |
+        docker-compose config
+        
+    # Optional: Run tests if you have them
+    # - name: Run backend tests
+    #   run: |
+    #     docker run jura-backend:test npm test
+        
+    # Optional: Push to registry
+    # - name: Login to Docker Hub
+    #   uses: docker/login-action@v2
+    #   with:
+    #     username: ${{ secrets.DOCKER_USERNAME }}
+    #     password: ${{ secrets.DOCKER_PASSWORD }}
+    #     
+    # - name: Push images
+    #   run: |
+    #     docker tag jura-backend:test ${{ secrets.DOCKER_USERNAME }}/jura-backend:latest
+    #     docker tag jura-frontend:test ${{ secrets.DOCKER_USERNAME }}/jura-frontend:latest
+    #     docker push ${{ secrets.DOCKER_USERNAME }}/jura-backend:latest
+    #     docker push ${{ secrets.DOCKER_USERNAME }}/jura-frontend:latest
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+        
+    - name: Lint frontend
+      run: |
+        cd frontend
+        npm run lint
+        
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
