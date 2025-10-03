@@ -197,6 +197,58 @@ docker-compose exec frontend sh
 docker-compose restart
 ```
 
+### 🧪 Testing
+
+The backend includes comprehensive unit and integration tests with Jest and Supertest.
+
+**Running Tests:**
+
+```bash
+# Run all tests
+npm test --prefix backend
+
+# Run tests in watch mode (re-runs on file changes)
+npm run test:watch --prefix backend
+
+# Run tests with coverage report
+npm run test:coverage --prefix backend
+
+# Run only unit tests
+npm run test:unit --prefix backend
+
+# Run only integration tests
+npm run test:integration --prefix backend
+```
+
+**Test Coverage:**
+
+Current test coverage for backend:
+- **68 test cases** covering critical functionality
+- **52% statement coverage** on server.cjs
+- **43% branch coverage** 
+- Unit tests for utility functions (sanitization, validation, error handling)
+- Integration tests for API endpoints (/chat, /health)
+- Mocked external dependencies (Gemini API)
+
+**Test Structure:**
+
+```
+backend/tests/
+├── unit/
+│   ├── utils.test.js      # Utility function tests
+│   └── errors.test.js     # Error handling tests
+├── integration/
+│   └── api.test.js        # API endpoint tests
+├── mocks/
+│   └── gemini.mock.js     # Gemini API mock
+├── setup.js               # Test environment setup
+└── README.md              # Detailed testing guide
+```
+
+For detailed testing documentation, see **[Testing Guide](backend/tests/README.md)**
+
+---
+
 ### 🐛 Troubleshooting
 
 **Port already in use:**
@@ -242,13 +294,18 @@ docker-compose up
 
 ## 📚 Additional Documentation
 
-For more detailed information about Docker setup and usage:
+For more detailed information:
 
+**Docker & Deployment:**
 - **[Docker Setup Guide](docs/DOCKER.md)** - Comprehensive Docker documentation
 - **[Dockerization Summary](docs/DOCKERIZATION_SUMMARY.md)** - Implementation details
 - **[Docker Quick Reference](docs/DOCKER_QUICK_REFERENCE.txt)** - Quick command reference
 - **[Dockerization Checklist](docs/DOCKERIZATION_CHECKLIST.md)** - Verification checklist
 - **[GitHub Actions Example](docs/.github-workflows-docker-build.yml.example)** - CI/CD template
+
+**Testing:**
+- **[Testing Guide](backend/tests/README.md)** - Comprehensive testing documentation
+- **[Error Handling Guide](backend/Docs/ERROR_HANDLING.md)** - Backend error handling
 
 ---
 
