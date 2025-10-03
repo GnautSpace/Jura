@@ -4,7 +4,11 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.cjs",
-    "dev": "nodemon server.cjs"
+    "dev": "nodemon server.cjs",
+    "dev:lexi": "nodemon LexiBotServer.cjs",
+    "dev:both": "concurrently \"npm run dev\" \"npm run dev:lexi\"",
+    "test": "node test-error-handling.js",
+    "health": "curl http://localhost:3000/health || echo 'Server not running'"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +26,7 @@
     "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.9"
   }
 }
