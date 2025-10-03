@@ -19,10 +19,6 @@ const Translator = ({ extractedText }) => {
     onVoicesChanged();
   }, []);
 
-  
-
-
-  const GOOGLE_API_KEY = import.meta.env.GEMINI_API_KEY_2;
 
   const translateText = async () => {
     try {
