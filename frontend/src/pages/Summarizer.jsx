@@ -1,6 +1,17 @@
 import { useState } from "react";
+import PropTypes from "prop-types";
 
 
+/**
+ * Render a UI that sends extracted text to a backend to produce a concise, structured legal-case summary.
+ *
+ * Displays a preview of the provided extracted text, a button to request summarization, and the resulting
+ * summary or user-facing error messages. Manages internal loading and summary state while communicating
+ * with a backend POST /chat endpoint.
+ *
+ * @param {string} extractedText - The document text (for example OCR or extracted content) to summarize; may be empty.
+ * @returns {JSX.Element} A component containing the extracted-text preview, summarize button, and summary display.
+ */
 function Summarizer({ extractedText }) {
   const [isProcessingSummarize, setIsProcessingSummarize] = useState(false);
   const [summaryText, setSummaryText] = useState(""); 
@@ -9,44 +20,58 @@ function Summarizer({ extractedText }) {
     setIsProcessingSummarize(true); 
 
     try {
-      const API_KEY = import.meta.env.VITE_GEMINI_API_KEY_3;
-      const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
+      // Use your secure backend instead of direct API calls
+      const BACKEND_URL = "http://localhost:3000/chat";
 
-      const response = await fetch(GEMINI_API_URL, {
+      const summaryPrompt = `Summarize the following text concisely. Extract and display the following details line by line like numbered points without any special characters like (, ~, etc.) break the line and move to next line after every extracted content.:* Case Name: [Extracted case name] Plaintiff: [Extracted plaintiff name] Defendant: [Extracted defendant name] Legal Issues: [Extracted legal issues] Relevant Laws: [Extracted laws] Important Dates: [Extracted dates]*
+            
+        Document text:
+        ${extractedText}`;
+
+      console.log('📤 Sending summarization request to backend...');
+
+      const response = await fetch(BACKEND_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          system_instruction: {
-            parts: [
-              {
-                text: "Summarize the following text concisely. Extract and display the following details line by line like numbered points without any special characters like (, ~, etc.) break the line and move to next line after every extracted content.:* Case Name: [Extracted case name] Plaintiff: [Extracted plaintiff name] Defendant: [Extracted defendant name] Legal Issues: [Extracted legal issues] Relevant Laws: [Extracted laws] Important Dates: [Extracted dates]*",
-              },
-            ],
-          },
-          contents: [
-            {
-              parts: [
-                {
-                  text: extractedText,
-                },
-              ],
-            },
-          ],
+          message: summaryPrompt
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Backend error ${response.status}: ${errorData.message || 'Unknown error'}`);
       }
 
       const result = await response.json();
-      const summaryResult = result.candidates[0]?.content?.parts[0]?.text || "No summary available";
-
-      setSummaryText(summaryResult); 
+      console.log('Backend response:', result);
+      
+      if (result.success) {
+        setSummaryText(result.response || "No summary available");
+        console.log('✅ Summarization completed successfully');
+      } else {
+        console.error("❌ Backend error:", result.message);
+        setSummaryText(`Error: ${result.message}\n\nHow to fix: ${result.fixableReason || 'Please try again'}`);
+      }
     } catch (error) {
-      console.error("Error in Gemini Summarize API:", error);
+      console.error("❌ Error calling backend:", error);
+      
+      if (error.message.includes('Failed to fetch')) {
+        setSummaryText(`❌ Connection Error: Cannot reach the backend server.
+
+🔧 How to fix:
+1. Make sure your backend server is running
+2. Run: npm run dev (in the backend folder)
+3. Check that the server is running on http://localhost:3000
+
+Error details: ${error.message}`);
+      } else {
+        setSummaryText(`❌ Error: ${error.message}
+
+Please try again. If the problem persists, check the browser console for more details.`);
+      }
     } finally {
       setIsProcessingSummarize(false);
     }
@@ -94,5 +119,8 @@ function Summarizer({ extractedText }) {
     </div>
   );
 }
+Summarizer.propTypes = {
+  extractedText: PropTypes.string.isRequired,
+};
 
 export default Summarizer;
