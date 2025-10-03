@@ -20,8 +20,6 @@ services:
     environment:
       - NODE_ENV=production
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-    volumes:
-      - ./backend:/app
     networks:
       - jura-net
 
