@@ -14,8 +14,7 @@ const app = express();
 //const upload = multer({ dest: "uploads/" });
 
 const corsOptions = {
-    origin: "http://localhost:5173",
-    "https://jura-flame.vercel.app/",
+    origin: ["http://localhost:5173","https://jura-flame.vercel.app/"],
     credentials: true,
 };
 
