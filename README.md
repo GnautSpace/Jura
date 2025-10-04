@@ -313,4 +313,4 @@ For more detailed information:
 please check (CONTRIBUTING.md)[https://github.com/GnautSpace/Jura/blob/main/CONTRIBUTING.md]
       
 ## License
-This project is licensed under the MIT License — see the LICENSE file for details.
+This project is licensed under the MIT License — see the LICENSE-CODE file for details.
