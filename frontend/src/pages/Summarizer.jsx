@@ -2,6 +2,16 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 
 
+/**
+ * Render a UI that sends extracted text to a backend to produce a concise, structured legal-case summary.
+ *
+ * Displays a preview of the provided extracted text, a button to request summarization, and the resulting
+ * summary or user-facing error messages. Manages internal loading and summary state while communicating
+ * with a backend POST /chat endpoint.
+ *
+ * @param {string} extractedText - The document text (for example OCR or extracted content) to summarize; may be empty.
+ * @returns {JSX.Element} A component containing the extracted-text preview, summarize button, and summary display.
+ */
 function Summarizer({ extractedText }) {
   const [isProcessingSummarize, setIsProcessingSummarize] = useState(false);
   const [summaryText, setSummaryText] = useState(""); 
@@ -49,7 +59,6 @@ function Summarizer({ extractedText }) {
       console.error("❌ Error calling backend:", error);
       
       if (error.message.includes('Failed to fetch')) {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
         setSummaryText(`❌ Connection Error: Cannot reach the backend server.
 
 🔧 How to fix:
