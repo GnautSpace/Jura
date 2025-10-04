@@ -1,8 +1,10 @@
 import '../styles/Home.css';
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom';
+
 import LegalQuote from './Quotes'
 
 function Home() {
+    const navigate = useNavigate();
     return (
         <>
             <div className="hero-section">
@@ -12,6 +14,7 @@ function Home() {
                 <button
                     className="hero-btn"
                     aria-label="Explore Jura"
+                    onClick={() => navigate('/features')}
                 >
                 <Link to="/features" style={{textDecoration:'none'}}>
                     Explore
