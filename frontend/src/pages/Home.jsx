@@ -1,8 +1,10 @@
 import '../styles/Home.css';
+import { useNavigate } from 'react-router-dom';
 
 import LegalQuote from './Quotes'
 
 function Home() {
+    const navigate = useNavigate();
     return (
         <>
             <div className="hero-section">
@@ -12,7 +14,7 @@ function Home() {
                 <button
                     className="hero-btn"
                     aria-label="Explore Jura"
-                    onClick={() => window.location.href = "/features"}
+                    onClick={() => navigate('/features')}
                 >
                     Explore
                 </button>
