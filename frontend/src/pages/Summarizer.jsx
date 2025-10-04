@@ -21,7 +21,7 @@ function Summarizer({ extractedText }) {
 
     try {
       // Use your secure backend instead of direct API calls
-      const BACKEND_URL = "http://localhost:3000/chat";
+      const BACKEND_URL = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/chat`;
 
       const summaryPrompt = `Summarize the following text concisely. Extract and display the following details line by line like numbered points without any special characters like (, ~, etc.) break the line and move to next line after every extracted content.:* Case Name: [Extracted case name] Plaintiff: [Extracted plaintiff name] Defendant: [Extracted defendant name] Legal Issues: [Extracted legal issues] Relevant Laws: [Extracted laws] Important Dates: [Extracted dates]*
             
@@ -64,7 +64,7 @@ function Summarizer({ extractedText }) {
 🔧 How to fix:
 1. Make sure your backend server is running
 2. Run: npm run dev (in the backend folder)
-3. Check that the server is running on http://localhost:3000
+3. Check that the server is running on ${apiUrl}
 
 Error details: ${error.message}`);
       } else {

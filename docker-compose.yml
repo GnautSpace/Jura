@@ -1,0 +1,47 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      target: development
+    container_name: jura-backend
+    ports:
+      - "3000:3000"  # Main server (server.cjs)
+      - "5000:5000"  # LexiBot server (LexiBotServer.cjs)
+    environment:
+      - NODE_ENV=development
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY_1=${GEMINI_API_KEY_1}
+    volumes:
+      # Mount source code for hot-reload
+      - ./backend:/app
+      # Exclude node_modules from mount
+      - /app/node_modules
+    networks:
+      - jura-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    container_name: jura-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3000
+      - VITE_LEXI_API_URL=http://localhost:5000
+    volumes:
+      # Mount source code for hot-reload
+      - ./frontend:/app
+      # Exclude node_modules from mount
+      - /app/node_modules
+    networks:
+      - jura-net
+    restart: unless-stopped
+
+networks:
+  jura-net:
+    driver: bridge

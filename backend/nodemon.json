@@ -1,0 +1,25 @@
+{
+  "watch": [
+    "server.cjs",
+    "LexiBotServer.cjs",
+    ".env"
+  ],
+  "ext": "js,cjs,json,env",
+  "ignore": [
+    "node_modules/**/*",
+    "uploads/**/*",
+    "*.log",
+    "test-*.js",
+    "ERROR_HANDLING.md"
+  ],
+  "delay": 1000,
+  "verbose": true,
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "events": {
+    "start": "echo '🚀 Starting server with nodemon...'",
+    "crash": "echo '💥 Server crashed! Waiting for file changes to restart...'",
+    "restart": "echo '🔄 Restarting server due to file changes...'"
+  }
+}

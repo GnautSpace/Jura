@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      target: production
+    container_name: jura-backend-prod
+    ports:
+      - "3000:3000"  # Main server (server.cjs)
+      - "5000:5000"  # LexiBot server (LexiBotServer.cjs)
+    environment:
+      - NODE_ENV=production
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY_1=${GEMINI_API_KEY_1}
+    networks:
+      - jura-net
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    container_name: jura-frontend-prod
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=http://localhost:3000
+      - VITE_LEXI_API_URL=http://localhost:5000
+    networks:
+      - jura-net
+    restart: always
+
+networks:
+  jura-net:
+    driver: bridge

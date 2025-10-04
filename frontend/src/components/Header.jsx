@@ -18,9 +18,9 @@ function Header() {
       </div>
 
       <nav className={`nav-menu ${isOpen ? "open" : ""}`}>
-        <Link to="/" onClick={toggleMenu}>Home</Link>
-        <Link to="/features" onClick={toggleMenu}>Features</Link>
-        <Link to="/about" onClick={toggleMenu}>About</Link>
+        <Link to="/">Home</Link>
+        <Link to="/features">Features</Link>
+        <Link to="/about">About</Link>
       </nav>
     </header>
   );
