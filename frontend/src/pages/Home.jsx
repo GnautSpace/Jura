@@ -1,5 +1,5 @@
 import '../styles/Home.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 import LegalQuote from './Quotes'
 
