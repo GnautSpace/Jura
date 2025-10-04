@@ -115,19 +115,24 @@ const validateEnvironment = () => {
     }
 };
 
-validateEnvironment();
+// Validate and initialize Gemini AI
+let genai_1;
+if (process.env.NODE_ENV !== 'test') {
+    validateEnvironment();
+}
 
-const apiKey1 = process.env.GEMINI_API_KEY_1;
+const apiKey1 = process.env.GEMINI_API_KEY_1 || 'test-api-key';
 
 // Initialize Gemini AI with error handling
-let genai_1;
 try {
     genai_1 = new GoogleGenerativeAI(apiKey1);
 } catch (error) {
-    throw new ConfigurationError(
-        "Failed to initialize Google Generative AI",
-        "Check if your GEMINI_API_KEY_1 is valid and properly formatted"
-    );
+    if (process.env.NODE_ENV !== 'test') {
+        throw new ConfigurationError(
+            "Failed to initialize Google Generative AI",
+            "Check if your GEMINI_API_KEY_1 is valid and properly formatted"
+        );
+    }
 }
 
 const generationConfig = {
@@ -147,9 +152,9 @@ const sanitizeResponse = (text) => {
         }
         
         const cleanedText = text
-            .replace(/(\*\*|\*|__|_)/g, "")
-            .replace(/^>\s+/gm, "")
-            .replace(/^[-*]\s+/gm, "")
+            .replace(/^>\s*/gm, "")                // Remove quote markers (> at start of line)
+            .replace(/^[-\*]\s*/gm, "")            // Remove bullet points (- or * at start of line)  
+            .replace(/(\*\*|\*|__|_)/g, "")        // Remove bold, italic, underscores (must be after bullets)
             .trim();
             
         return cleanedText || "I'm sorry, I couldn't process your request. Please try again.";
@@ -196,15 +201,19 @@ app.get('/health', async (req, res) => {
             geminiAI: 'connected'
         };
         
-        // Quick AI test
-        try {
-            const model = genai_1.getGenerativeModel({ model: "gemini-2.5-pro" });
-            const testResult = await model.generateContent("Hello");
-            healthData.geminiAI = 'operational';
-        } catch (error) {
-            healthData.geminiAI = 'error';
-            healthData.geminiError = error.message;
-            healthData.status = 'degraded';
+        // Quick AI test (skip in test environment)
+        if (process.env.NODE_ENV !== 'test' && genai_1) {
+            try {
+                const model = genai_1.getGenerativeModel({ model: "gemini-2.5-pro" });
+                const testResult = await model.generateContent("Hello");
+                healthData.geminiAI = 'operational';
+            } catch (error) {
+                healthData.geminiAI = 'error';
+                healthData.geminiError = error.message;
+                healthData.status = 'degraded';
+            }
+        } else if (process.env.NODE_ENV === 'test') {
+            healthData.geminiAI = 'mocked';
         }
         
         const statusCode = healthData.status === 'healthy' ? 200 : 503;
@@ -359,7 +368,7 @@ app.post("/chat", async (req, res) => {
             console.error(`⚠️ VALIDATION ERROR: Client sent invalid data - Field: ${error.field || 'unknown'}`);
             return res.status(error.statusCode).json({
                 success: false,
-                error: "Validation Error",
+                error: error.name,  // Use the actual error name: "ValidationError"
                 message: error.message,
                 field: error.field,
                 fixableReason: `Please provide a valid ${error.field || 'input'}`
@@ -370,7 +379,7 @@ app.post("/chat", async (req, res) => {
             console.error(`🤖 API ERROR: Issue with Gemini AI service - Status: ${error.statusCode}`);
             return res.status(error.statusCode).json({
                 success: false,
-                error: "API Error",
+                error: error.name,  // Use the actual error name: "APIError"
                 message: error.message,
                 fixableReason: error.fixableReason
             });
@@ -532,7 +541,7 @@ const startServer = () => {
     // Handle server errors
     server.on('error', (error) => {
         if (error.code === 'EADDRINUSE') {
-            console.error(`Port ${port} is already in use`);
+            console.error(`❌ Port ${port} is already in use`);
             console.error("How to fix:");
             console.error(`  1. Kill the process using port ${port}:`);
             console.error(`     netstat -ano | findstr :${port}`);
@@ -565,6 +574,14 @@ const startServer = () => {
             process.exit(0);
         });
     });
+    
+    return server;
 };
 
-startServer();
+// Export app for testing
+module.exports = app;
+
+// Only start server if not in test environment
+if (require.main === module) {
+    startServer();
+}
