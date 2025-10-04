@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Jura! We're excited to have you join our community. This guide will help you understand our contribution process, coding standards, and best practices.
 
-## Note : The site is currently broken. It will take some time as i cannot check it until oct-6. If anyone is interested in maintaining the site meanwhile you are welcome. 
+## Note : The site is currently broken. It will take some time as i cannot check it until oct-6. Meanwhile, if anyone is interested in maintaining the site  you are welcome. 
 
 ## 📋 Table of Contents
 
