@@ -1,47 +1,119 @@
-.about-page {
-    padding: 2rem;
-    line-height: 1.6;
-    color: #333;
-    font-family: Arial, sans-serif;
+  .about-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+.about-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.about-header h1 {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: #222;
+}
+
+.highlight {
+  color: #0077ff;
+}
+
+.intro {
+  font-size: 1.2rem;
+  color: #555;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.about-section {
+  margin-bottom: 2.5rem;
+  padding: 1.5rem;
+  background: #fafafa;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+
+.about-section h2 {
+  font-size: 1.8rem;
+  color: #0077ff;
+  margin-bottom: 1rem;
+}
+
+.about-section p {
+  font-size: 1rem;
+  color: #444;
+}
+
+.mission {
+  background: linear-gradient(135deg, #0077ff 0%, #00c6ff 100%);
+  color: white;
+}
+
+.mission h2 {
+  color: #fff;
+}
+
+.mission p {
+  color: #f5f5f5;
+}
+
+.cta {
+  text-align: center;
+  margin-top: 3rem;
+  padding: 2rem;
+  background: #0077ff;
+  border-radius: 12px;
+  color: white;
+}
+
+.cta h2 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.cta p {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.cta-btn {
+  background: white;
+  color: #0077ff;
+  padding: 0.8rem 2rem;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cta-btn:hover {
+  background: #f1f1f1;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .about-header h1 {
+    font-size: 2.2rem;
   }
-  
-  .about-page h1 {
-    font-size: 2.5rem;
-    color: #fff;
-    margin-bottom: 1rem;
+
+  .intro {
+    font-size: 1rem;
+    padding: 0 1rem;
   }
-  
-  .about-page h2 {
-    font-size: 1.8rem;
-    color: #fff;
-    margin-top: 2rem;
+
+  .about-section h2 {
+    font-size: 1.5rem;
   }
-  
-  .about-page p {
-    margin-bottom: 1rem;
-    color: #fff;
-    text-wrap: wrap;
-    padding: 1em 2em;
+
+  .cta h2 {
+    font-size: 1.5rem;
   }
-  
-  .terms-privacy {
-    margin-top: 2rem;
-    color: #fff;
-    text-wrap: wrap;
-    padding: 1em 2em;
-  }
-  
-  .mission {
-    margin-top: 2rem;
-    color: #fff;
-    text-wrap: wrap;
-    padding: 1em 2em;
-  }
-  
-  footer {
-    margin-top: 3rem;
-    font-size: 0.9rem;
-    color: #555;
-    text-align: center;
-  }
-  
+}
+

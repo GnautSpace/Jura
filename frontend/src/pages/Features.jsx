@@ -10,10 +10,6 @@ function Features() {
     setExtractedText(text);  
   };
   return (
-    
-
-  
-
     <div className="features-wrapper">
       <h2 className="section-title">Explore Our Features</h2>
 
