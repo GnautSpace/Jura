@@ -24,7 +24,7 @@ const Translator = ({ extractedText }) => {
   const translateText = async () => {
     try {
       // Use your secure backend instead of direct API calls
-      const BACKEND_URL = "http://localhost:3000/chat";
+      const BACKEND_URL = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/chat`;
 
       // Create language mapping for better user experience
       const languageNames = {
@@ -82,12 +82,13 @@ const Translator = ({ extractedText }) => {
       console.error('Error calling backend for translation:', error);
       
       if (error.message.includes('Failed to fetch')) {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
         setTranslatedText(`Connection Error: Cannot reach the backend server.
 
 🔧 How to fix:
 1. Make sure your backend server is running
 2. Run: npm run dev (in the backend folder)
-3. Check that the server is running on http://localhost:3000
+3. Check that the server is running on ${apiUrl}
 
 Error details: ${error.message}`);
       } else {

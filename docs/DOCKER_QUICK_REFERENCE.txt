@@ -1,0 +1,141 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                     JURA DOCKER QUICK REFERENCE                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ QUICK START                                                              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  1. Setup environment variables:
+     $ cp .env.example .env
+     $ nano .env  # Add your GEMINI_API_KEY and GEMINI_API_KEY_1
+
+  2. Start application:
+     $ docker-compose up
+
+  3. Access:
+     Frontend:  http://localhost:5173
+     Backend:   http://localhost:3000
+     LexiBot:   http://localhost:5000
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ESSENTIAL COMMANDS                                                       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Development Mode:
+    docker-compose up                    # Start all services
+    docker-compose up -d                 # Start in background
+    docker-compose down                  # Stop all services
+    docker-compose logs -f               # View logs
+    docker-compose restart               # Restart services
+
+  Production Mode:
+    docker-compose -f docker-compose.prod.yml up -d
+    docker-compose -f docker-compose.prod.yml down
+    docker-compose -f docker-compose.prod.yml logs -f
+
+  Building:
+    docker-compose build                 # Build all images
+    docker-compose build --no-cache      # Rebuild from scratch
+    docker-compose up --build            # Build and start
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ DEBUGGING                                                                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  View Logs:
+    docker-compose logs backend          # Backend logs
+    docker-compose logs frontend         # Frontend logs
+    docker-compose logs -f --tail=100    # Last 100 lines, follow
+
+  Shell Access:
+    docker-compose exec backend sh       # Backend shell
+    docker-compose exec frontend sh      # Frontend shell
+
+  Service Status:
+    docker-compose ps                    # List running services
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Port Conflict:
+    Linux/Mac:  lsof -ti:3000 | xargs kill -9
+    Windows:    netstat -ano | findstr :3000
+
+  Hot-reload Not Working:
+    docker-compose restart
+    docker-compose down && docker-compose up --build
+
+  Environment Variables Not Loading:
+    1. Check .env file exists in root directory
+    2. Restart containers: docker-compose down && docker-compose up
+    3. Verify format: KEY=value (no quotes, no spaces)
+
+  Clean Restart:
+    docker-compose down -v               # Remove volumes
+    docker-compose build --no-cache      # Rebuild
+    docker-compose up                    # Start fresh
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ENVIRONMENT VARIABLES                                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Required:
+    GEMINI_API_KEY=your_key_here         # LexiBot API key
+    GEMINI_API_KEY_1=your_key_here       # Document processing API key
+
+  Optional:
+    NODE_ENV=development                 # development | production
+    VITE_API_URL=http://localhost:3000   # Backend URL
+    VITE_LEXI_API_URL=http://localhost:5000  # LexiBot URL
+
+  Get API Keys: https://aistudio.google.com/
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PROJECT STRUCTURE                                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Root Level:
+    ├── .env.example                     # Environment template
+    ├── docker-compose.yml               # Development config
+    ├── docker-compose.prod.yml          # Production config
+    ├── DOCKER.md                        # Detailed Docker docs
+    ├── README.md                        # Main documentation
+    └── DOCKERIZATION_SUMMARY.md         # Implementation summary
+
+  Backend:
+    ├── Dockerfile                       # Multi-stage build
+    ├── .dockerignore                    # Exclude files
+    └── .env.example                     # Backend env template
+
+  Frontend:
+    ├── Dockerfile                       # Multi-stage build
+    └── .dockerignore                    # Exclude files
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ FEATURES                                                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  ✓ Hot-reload in development mode
+  ✓ Optimized production builds
+  ✓ Multi-stage Docker builds
+  ✓ Environment variable configuration
+  ✓ Isolated network for services
+  ✓ Volume mounts for development
+  ✓ Separate dev/prod configurations
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ADDITIONAL RESOURCES                                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  📖 Full Documentation:     README.md
+  🐳 Docker Guide:           DOCKER.md
+  📝 Implementation Details: DOCKERIZATION_SUMMARY.md
+  🔧 Configuration:          .env.example
+
+  Need Help? Check the troubleshooting section in README.md
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║  For detailed information, see README.md and DOCKER.md                   ║
+╚══════════════════════════════════════════════════════════════════════════╝
