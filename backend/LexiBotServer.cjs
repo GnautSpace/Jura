@@ -33,6 +33,30 @@ class ConfigurationError extends Error {
 
 const app = express();
 
+// Conversation storage for maintaining context across requests
+const conversationStore = new Map();
+const CONVERSATION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+// Clean up old conversations periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [conversationId, conversation] of conversationStore.entries()) {
+        if (now - conversation.lastActivity > CONVERSATION_TIMEOUT) {
+            conversationStore.delete(conversationId);
+            console.log(`🧹 Cleaned up conversation: ${conversationId}`);
+        }
+    }
+}, 5 * 60 * 1000); // Clean every 5 minutes
+
+// Health check caching system
+const HEALTH_CACHE_TTL = 60 * 1000; // 1 minute cache TTL
+const ENABLE_GEMINI_HEALTH = process.env.ENABLE_GEMINI_HEALTH === 'true';
+let geminiHealthCache = {
+    result: null,
+    timestamp: 0,
+    lastError: null
+};
+
 const corsOptions = {
   origin: "http://localhost:5173", 
   methods: 'POST,GET,PUT,PATCH,DELETE',
@@ -48,118 +72,66 @@ const RATE_LIMIT_WINDOW = 60000; // 1 minute
 const RATE_LIMIT_REQUESTS = 30; // 30 requests per minute
 
 const rateLimit = (req, res, next) => {
-    try {
-        const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-        const now = Date.now();
-        
-        if (!rateLimitMap.has(clientIP)) {
-            rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-            return next();
-        }
-        
-        const clientData = rateLimitMap.get(clientIP);
-        
-        if (now > clientData.resetTime) {
-            // Reset the rate limit window
-            rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-            return next();
-        }
-        
-        if (clientData.count >= RATE_LIMIT_REQUESTS) {
-            const retryAfter = Math.ceil((clientData.resetTime - now) / 1000);
-            console.warn(`RATE LIMIT: IP ${clientIP} exceeded limit (${clientData.count}/${RATE_LIMIT_REQUESTS}). Retry in ${retryAfter}s`);
-            return res.status(429).json({
-                success: false,
-                error: "Rate Limit Exceeded",
-                message: "Too many requests from this IP",
-                fixableReason: `Please wait ${retryAfter} seconds before making another request`,
-                retryAfter: retryAfter
-            });
-        }
-        
-        clientData.count++;
-        next();
-    } catch (error) {
-        console.error("Rate limiting error:", error);
-        next(); // Continue without rate limiting if there's an error
-    }
-};
-
-app.use('/chat', rateLimit);
-
-// Enhanced Environment Variable Validation
-const validateEnvironment = () => {
-    const errors = [];
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
     
-    if (!process.env.GEMINI_API_KEY) {
-        errors.push("GEMINI_API_KEY is missing");
-    } else if (!process.env.GEMINI_API_KEY.startsWith('AIza')) {
-        errors.push("GEMINI_API_KEY appears to be invalid (should start with 'AIza')");
+    if (!rateLimitMap.has(clientIP)) {
+        rateLimitMap.set(clientIP, { requests: 1, windowStart: now });
+        return next();
     }
     
-    if (errors.length > 0) {
-        console.error("Environment Configuration Errors:");
-        errors.forEach(error => console.error(`  - ${error}`));
-        console.error("\nHow to fix:");
-        console.error("  1. Create a .env file in the backend directory");
-        console.error("  2. Get a valid API key from https://aistudio.google.com/");
-        console.error("  3. Add: GEMINI_API_KEY=your_api_key_here");
-        process.exit(1);
+    const clientData = rateLimitMap.get(clientIP);
+    
+    if (now - clientData.windowStart > RATE_LIMIT_WINDOW) {
+        clientData.requests = 1;
+        clientData.windowStart = now;
+        return next();
     }
+    
+    if (clientData.requests >= RATE_LIMIT_REQUESTS) {
+        return res.status(429).json({
+            success: false,
+            error: "Rate Limit Exceeded",
+            message: "Too many requests. Please wait before trying again.",
+            fixableReason: "Wait for 1 minute before making another request"
+        });
+    }
+    
+    clientData.requests++;
+    next();
 };
 
-validateEnvironment();
+app.use(rateLimit);
 
-const apiKey = process.env.GEMINI_API_KEY;
+// Configure Gemini AI
+if (!process.env.GEMINI_API_KEY) {
+    console.error("🚨 CRITICAL ERROR: GEMINI_API_KEY environment variable is missing!");
+    console.error("💡 Solution: Add GEMINI_API_KEY=your_api_key_here to your .env file");
+    console.error("🔗 Get your API key from: https://aistudio.google.com/");
+    process.exit(1);
+}
 
-// Initialize Gemini AI with error handling
 let genAI;
 try {
-    genAI = new GoogleGenerativeAI(apiKey);
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    console.log("✅ Gemini AI initialized successfully");
 } catch (error) {
+    console.error("🚨 Failed to initialize Gemini AI:", error.message);
     throw new ConfigurationError(
-        "Failed to initialize Google Generative AI",
-        "Check if your GEMINI_API_KEY is valid and properly formatted"
+        "Failed to initialize Gemini AI",
+        "Check your GEMINI_API_KEY in the .env file"
     );
 }
 
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.5-pro",
-  systemInstruction: `You are a helpful legal assistant named "Lexi." Your role is to offer basic legal information and guidance in an approachable and easy-to-understand way. You specialize in answering questions about rights, legal terms, and processes. Always remind users to seek advice from a licensed legal professional for specific issues.`,
-});
-
+// Generation configuration
 const generationConfig = {
-  temperature: 0.5,
-  topK: 64,
-  topP: 0.95,
-  maxOutputTokens: 5000,
-  responseMimeType: "text/plain",
+  temperature: 0.7,
+  topP: 0.9,
+  topK: 40,
+  maxOutputTokens: 2048,
 };
 
-app.use(express.json());
-
-// Enhanced response sanitization with error handling
-const sanitizeResponse = (text) => {
-    try {
-        if (!text || typeof text !== 'string') {
-            console.warn("Invalid response text received:", typeof text);
-            return "I'm sorry, I couldn't process your request. Please try again.";
-        }
-        
-        const cleanedText = text
-            .replace(/(\*\*|\*|__|_)/g, "")
-            .replace(/^>\s+/gm, "")
-            .replace(/^[-*]\s+/gm, "")
-            .trim();
-            
-        return cleanedText || "I'm sorry, I couldn't process your request. Please try again.";
-    } catch (error) {
-        console.error("Error sanitizing response:", error.message);
-        return "I'm sorry, there was an error processing the response. Please try again.";
-    }
-};
-
-// Input validation helper
+// Enhanced input validation helper
 const validateChatInput = (body) => {
     if (!body) {
         throw new ValidationError("Request body is required");
@@ -180,8 +152,72 @@ const validateChatInput = (body) => {
     if (body.message.length > 10000) {
         throw new ValidationError("Message is too long (max 10,000 characters)", "message");
     }
+
+    // Validate conversationId if provided
+    if (body.conversationId && typeof body.conversationId !== 'string') {
+        throw new ValidationError("Conversation ID must be a string", "conversationId");
+    }
+
+    // Validate context if provided
+    if (body.context && typeof body.context !== 'string') {
+        throw new ValidationError("Context must be a string", "context");
+    }
     
-    return body.message.trim();
+    return {
+        message: body.message.trim(),
+        conversationId: body.conversationId || null,
+        context: body.context || null
+    };
+};
+
+// Efficient Gemini health check function
+const checkGeminiHealth = async () => {
+    const now = Date.now();
+    
+    // Check if we have a fresh cached result
+    if (geminiHealthCache.result && (now - geminiHealthCache.timestamp) < HEALTH_CACHE_TTL) {
+        console.log('📋 Using cached Gemini health status');
+        return geminiHealthCache.result;
+    }
+    
+    let healthResult = {
+        status: 'unknown',
+        error: null,
+        checkType: 'lightweight'
+    };
+    
+    try {
+        if (ENABLE_GEMINI_HEALTH) {
+            // Full generative test (quota-consuming)
+            console.log('🧪 Performing full Gemini generation test...');
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+            await model.generateContent("ping");
+            healthResult.status = 'operational';
+            healthResult.checkType = 'full-generation';
+        } else {
+            // Lightweight check - just verify model initialization
+            console.log('⚡ Performing lightweight Gemini check...');
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+            // Just verify the model can be instantiated without generating content
+            if (model && model.model) {
+                healthResult.status = 'operational';
+                healthResult.checkType = 'model-init';
+            } else {
+                throw new Error('Model instantiation failed');
+            }
+        }
+    } catch (error) {
+        console.log(`❌ Gemini health check failed: ${error.message}`);
+        healthResult.status = 'error';
+        healthResult.error = error.message;
+        geminiHealthCache.lastError = error.message;
+    }
+    
+    // Cache the result
+    geminiHealthCache.result = healthResult;
+    geminiHealthCache.timestamp = now;
+    
+    return healthResult;
 };
 
 // Health check endpoint
@@ -190,52 +226,94 @@ app.get('/health', async (req, res) => {
         const healthData = {
             status: 'healthy',
             timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-            memory: process.memoryUsage(),
-            environment: process.env.NODE_ENV || 'development',
-            geminiAI: 'connected'
+            server: 'operational',
+            geminiAI: 'checking...',
+            healthConfig: {
+                geminiFullCheck: ENABLE_GEMINI_HEALTH,
+                cacheTTL: HEALTH_CACHE_TTL / 1000 + 's'
+            }
         };
         
-        // Quick AI test
-        try {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-            const testResult = await model.generateContent("Hello");
-            healthData.geminiAI = 'operational';
-        } catch (error) {
-            healthData.geminiAI = 'error';
-            healthData.geminiError = error.message;
+        // Perform efficient Gemini health check
+        const geminiResult = await checkGeminiHealth();
+        
+        healthData.geminiAI = geminiResult.status;
+        healthData.geminiCheckType = geminiResult.checkType;
+        
+        if (geminiResult.error) {
+            healthData.geminiError = geminiResult.error;
+        }
+        
+        // Determine overall status
+        if (geminiResult.status === 'error') {
             healthData.status = 'degraded';
+        } else if (geminiResult.status === 'unknown') {
+            // Don't mark as degraded for unknown status in lightweight mode
+            healthData.status = 'healthy';
         }
         
         const statusCode = healthData.status === 'healthy' ? 200 : 503;
         res.status(statusCode).json(healthData);
     } catch (error) {
+        console.error('🚨 Health endpoint error:', error);
         res.status(500).json({
             status: 'unhealthy',
             timestamp: new Date().toISOString(),
-            error: error.message
+            error: error.message,
+            healthConfig: {
+                geminiFullCheck: ENABLE_GEMINI_HEALTH,
+                cacheTTL: HEALTH_CACHE_TTL / 1000 + 's'
+            }
         });
     }
 });
 
 app.post("/chat", async (req, res) => {
   const startTime = Date.now();
-  let userMsg;
+  let chatData;
   
   try {
     // Input validation
-    userMsg = validateChatInput(req.body);
+    chatData = validateChatInput(req.body);
+    const { message: userMsg, conversationId, context } = chatData;
+    
     console.log(`\nNEW CHAT REQUEST`);
     console.log(`Message: "${userMsg.substring(0, 100)}${userMsg.length > 100 ? '...' : ''}"`);
     console.log(`Message Length: ${userMsg.length} characters`);
+    console.log(`Conversation ID: ${conversationId || 'none'}`);
+    console.log(`Context: ${context || 'none'}`);
     console.log(`Started at: ${new Date().toLocaleTimeString()}`);
+
+    // Get or create conversation history
+    let conversation = null;
+    if (conversationId) {
+        conversation = conversationStore.get(conversationId);
+        if (conversation) {
+            conversation.lastActivity = Date.now();
+            console.log(`📚 Using existing conversation with ${conversation.history.length} messages`);
+        }
+    }
+
+    // Create enhanced system instruction based on context
+    let systemInstruction = `You are a helpful legal assistant named "Lexi." Your role is to offer basic legal information and guidance in an approachable and easy-to-understand way. You specialize in answering questions about rights, legal terms, and processes.`;
+    
+    if (context === 'legal_assistant') {
+        systemInstruction += ` You are specifically focused on legal assistance and should:
+        - Provide clear, accurate legal information
+        - Explain complex legal terms in simple language
+        - Always remind users that this is general information and they should consult a qualified attorney for specific legal advice
+        - Be helpful and professional in your responses
+        - If asked about non-legal topics, politely redirect the conversation back to legal matters`;
+    }
+
+    systemInstruction += ` Always remind users to seek advice from a licensed legal professional for specific issues.`;
     
     // Initialize AI model with error handling
     let model;
     try {
       model = genAI.getGenerativeModel({
         model: "gemini-2.5-pro",
-        systemInstruction: `You are a helpful legal assistant named "Lexi." Your role is to offer basic legal information and guidance in an approachable and easy-to-understand way. You specialize in answering questions about rights, legal terms, and processes. Always remind users to seek advice from a licensed legal professional for specific issues.`,
+        systemInstruction: systemInstruction,
       });
     } catch (error) {
       throw new APIError(
@@ -245,12 +323,20 @@ app.post("/chat", async (req, res) => {
       );
     }
 
+    // Prepare conversation history for AI model
+    let chatHistory = [];
+    if (conversation && conversation.history.length > 0) {
+        // Use existing conversation history
+        chatHistory = conversation.history;
+        console.log(`📜 Loading ${chatHistory.length} previous messages`);
+    }
+
     // Start chat session with error handling
     let chatSession;
     try {
       chatSession = model.startChat({
         generationConfig,
-        history: [{ role: "user", parts: [{ text: userMsg }] }],
+        history: chatHistory,
       });
     } catch (error) {
       throw new APIError(
@@ -313,15 +399,59 @@ app.post("/chat", async (req, res) => {
       throw new APIError(
         "Failed to extract response text",
         500,
-        "The AI response was malformed. Please try rephrasing your question"
+        "The AI response couldn't be processed. Please try again"
       );
     }
 
-    const sanitizedResponse = sanitizeResponse(rawResponse);
+    // Sanitize response to prevent potential security issues
+    const sanitizedResponse = rawResponse
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+=/gi, '')
+      .trim();
+
+    if (!sanitizedResponse) {
+      throw new APIError(
+        "Empty response from AI",
+        500,
+        "The AI didn't provide a response. Please try rephrasing your question"
+      );
+    }
+
     const processingTime = Date.now() - startTime;
+
+    // Save conversation history if conversationId is provided
+    if (conversationId) {
+        if (!conversation) {
+            // Create new conversation
+            conversation = {
+                id: conversationId,
+                history: [],
+                createdAt: Date.now(),
+                lastActivity: Date.now(),
+                context: context
+            };
+            conversationStore.set(conversationId, conversation);
+            console.log(`💾 Created new conversation: ${conversationId}`);
+        }
+
+        // Add user message and bot response to history
+        conversation.history.push(
+            { role: "user", parts: [{ text: userMsg }] },
+            { role: "model", parts: [{ text: sanitizedResponse }] }
+        );
+        
+        // Keep only last 20 messages to prevent memory issues
+        if (conversation.history.length > 40) {
+            conversation.history = conversation.history.slice(-40);
+        }
+        
+        conversation.lastActivity = Date.now();
+        console.log(`💾 Saved conversation (${conversation.history.length} messages)`);
+    }
     
-    console.log(`\n✅ ======================== SUCCESS ========================`);
-    console.log(`Processing Time: ${processingTime}ms`);
+    console.log(`=======================================================`);
+    console.log(`✅ SUCCESS - Chat completed in ${processingTime}ms`);
     console.log(`Input Length: ${userMsg.length} chars`);
     console.log(`Response Length: ${sanitizedResponse.length} chars`);
     console.log(`Completed at: ${new Date().toLocaleTimeString()}`);
@@ -331,7 +461,8 @@ app.post("/chat", async (req, res) => {
     res.json({
       success: true,
       response: sanitizedResponse,
-      processingTime: processingTime
+      processingTime: processingTime,
+      conversationId: conversationId
     });
     
   } catch (error) {
@@ -340,7 +471,7 @@ app.post("/chat", async (req, res) => {
     // Enhanced terminal logging with detailed error information
     console.error('\n🚨 ================================ ERROR ================================');
     console.error(`Processing Time: ${processingTime}ms`);
-    console.error(`User Message: "${userMsg ? userMsg.substring(0, 100) : 'N/A'}${userMsg && userMsg.length > 100 ? '...' : ''}"`);
+    console.error(`User Message: "${chatData ? chatData.message.substring(0, 100) : 'N/A'}${chatData && chatData.message.length > 100 ? '...' : ''}"`);
     console.error(`Error Type: ${error.name || 'Unknown'}`);
     console.error(`Error Message: ${error.message}`);
     console.error(`Status Code: ${error.statusCode || 500}`);
@@ -383,120 +514,43 @@ app.post("/chat", async (req, res) => {
       success: false,
       error: "Server Error",
       message: "An unexpected error occurred while processing your request",
-      fixableReason: "This appears to be a server issue. Please try again, and if the problem persists, contact support"
+      fixableReason: "Please try again in a moment or contact support if the issue persists"
     });
   }
 });
 
-// Global error handling middleware
-app.use((error, req, res, next) => {
-    console.error('\n🚨 ======================= GLOBAL ERROR =======================');
-    console.error(`Error Type: ${error.name || 'Unknown'}`);
-    console.error(`Error Message: ${error.message}`);
-    console.error(`Request URL: ${req.method} ${req.originalUrl}`);
-    console.error(`Request IP: ${req.ip || req.connection.remoteAddress || 'unknown'}`);
-    
-    if (error.stack) {
-        console.error(`📚 Stack Trace:\n${error.stack}`);
-    }
-    
-    console.error('==========================================================\n');
-    
-    if (error instanceof ValidationError || error instanceof APIError || error instanceof ConfigurationError) {
-        console.error(`⚙️ HANDLED ERROR: ${error.name} - Status: ${error.statusCode}`);
-        return res.status(error.statusCode).json({
-            success: false,
-            error: error.name,
-            message: error.message,
-            fixableReason: error.fixableReason
-        });
-    }
-    
-    // Handle JSON parsing errors
-    if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
-        console.error(`JSON PARSE ERROR: Client sent malformed JSON`);
-        return res.status(400).json({
-            success: false,
-            error: "JSON Parse Error",
-            message: "Invalid JSON in request body",
-            fixableReason: "Please check your request format and ensure it's valid JSON"
-        });
-    }
-    
-    console.error(`💥 UNHANDLED ERROR: This error type is not specifically handled`);
-    res.status(500).json({
-        success: false,
-        error: "Internal Server Error",
-        message: "An unexpected error occurred",
-        fixableReason: "This is likely a server issue. Please try again later or contact support"
-    });
-});
-
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
     res.status(404).json({
         success: false,
         error: "Not Found",
-        message: `Route ${req.method} ${req.originalUrl} not found`,
-        fixableReason: "Please check the URL and HTTP method. Available routes: POST /chat"
+        message: `Route ${req.method} ${req.path} not found`,
+        fixableReason: "Check the URL and request method. Available endpoints: GET /health, POST /chat"
     });
 });
 
-// Enhanced server startup with better error handling
-const port = process.env.PORT || 5000;
+// Error handling middleware
+app.use((error, req, res, next) => {
+    console.error("🚨 Unhandled middleware error:", error);
+    
+    res.status(500).json({
+        success: false,
+        error: "Internal Server Error",
+        message: "An unexpected server error occurred",
+        fixableReason: "This is likely a server issue. Please try again or contact support"
+    });
+});
 
-const startServer = () => {
-    const server = app.listen(port, () => {
-        console.log('\n ================== LEXIBOT SERVER STARTED ==================');
-        console.log(`Server URL: http://localhost:${port}`);
-        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`Gemini AI: Ready (API Key: ${apiKey.substring(0, 8)}...)`);
-        console.log(`CORS: Enabled for http://localhost:5173`);
-        console.log(`Rate Limiting: ${RATE_LIMIT_REQUESTS} requests per minute`);
-        console.log(`Available Endpoints:`);
-        console.log(`  • POST /chat - AI Chat Interface`);
-        console.log(`  • GET /health - Health Check`);
-        console.log(`Started at: ${new Date().toLocaleString()}`);
-        console.log('===========================================================\n');
-        console.log(' Server logs will appear below when requests are made...\n');
-    });
-    
-    // Handle server errors
-    server.on('error', (error) => {
-        if (error.code === 'EADDRINUSE') {
-            console.error(` Port ${port} is already in use`);
-            console.error(" How to fix:");
-            console.error(`  1. Kill the process using port ${port}:`);
-            console.error(`     netstat -ano | findstr :${port}`);
-            console.error(`     taskkill /PID <PID> /F`);
-            console.error(`  2. Or use a different port by setting PORT environment variable`);
-            process.exit(1);
-        } else if (error.code === 'EACCES') {
-            console.error(`Permission denied for port ${port}`);
-            console.error("How to fix: Try using a port number above 1024 or run as administrator");
-            process.exit(1);
-        } else {
-            console.error("Server startup error:", error.message);
-            process.exit(1);
-        }
-    });
-    
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-        console.log('SIGTERM received, shutting down gracefully...');
-        server.close(() => {
-            console.log('Server shut down successfully');
-            process.exit(0);
-        });
-    });
-    
-    process.on('SIGINT', () => {
-        console.log('\nSIGINT received, shutting down gracefully...');
-        server.close(() => {
-            console.log('Server shut down successfully');
-            process.exit(0);
-        });
-    });
-};
+const PORT = process.env.PORT || 3000;
 
-startServer();
+app.listen(PORT, () => {
+  console.log(`🚀 LexiBot Server is running on port ${PORT}`);
+  console.log(`🔗 Frontend should connect to: http://localhost:${PORT}/chat`);
+  console.log(`❤️ Health check available at: http://localhost:${PORT}/health`);
+  console.log(`📊 Rate limiting: ${RATE_LIMIT_REQUESTS} requests per minute per IP`);
+  console.log(`💾 Conversations will be cleaned up after ${CONVERSATION_TIMEOUT / (60 * 1000)} minutes of inactivity`);
+  console.log(`🏥 Health check mode: ${ENABLE_GEMINI_HEALTH ? 'Full generation test (quota-consuming)' : 'Lightweight check (quota-free)'}`);
+  console.log(`⏰ Health cache TTL: ${HEALTH_CACHE_TTL / 1000} seconds`);
+  console.log(`💡 To enable full Gemini health checks, set ENABLE_GEMINI_HEALTH=true in your .env file`);
+  console.log("✅ Server ready to handle requests!\n");
+});
