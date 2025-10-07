@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import "../styles/LexiBot.css";
 
 function LexiBot() {
@@ -134,17 +135,6 @@ function LexiBot() {
     }
   };
 
-  // Format message text with basic markdown-like formatting
-  const formatMessage = (text) => {
-    if (!text) return "";
-    
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>')
-      .replace(/^- /gm, '• ');
-  };
-
   const clear = () => {
     setVal("");
     setErr("");
@@ -211,10 +201,9 @@ function LexiBot() {
                 className={`message ${chatItem.role === "user" ? "user-message" : "bot-message"} ${chatItem.isError ? "error-message" : ""}`}
               >
                 <div className="message-content">
-                  <div 
-                    className="message-text"
-                    dangerouslySetInnerHTML={{ __html: formatMessage(chatItem.parts) }}
-                  />
+                  <div className="message-text">
+                    <ReactMarkdown>{chatItem.parts}</ReactMarkdown>
+                  </div>
                   <div className="message-time">
                     {new Date(chatItem.timestamp).toLocaleTimeString([], { 
                       hour: '2-digit', 

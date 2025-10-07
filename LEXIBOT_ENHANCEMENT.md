@@ -1,6 +1,6 @@
 # LexiBot Enhancement Summary
 
-### What We've Accomplished
+## What We've Accomplished
 
 #### **1. Enhanced React Component (`LexiBot.jsx`)**
 - **Modern State Management**: Implemented with React hooks (useState, useRef, useEffect)
