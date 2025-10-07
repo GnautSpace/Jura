@@ -48,6 +48,15 @@ setInterval(() => {
     }
 }, 5 * 60 * 1000); // Clean every 5 minutes
 
+// Health check caching system
+const HEALTH_CACHE_TTL = 60 * 1000; // 1 minute cache TTL
+const ENABLE_GEMINI_HEALTH = process.env.ENABLE_GEMINI_HEALTH === 'true';
+let geminiHealthCache = {
+    result: null,
+    timestamp: 0,
+    lastError: null
+};
+
 const corsOptions = {
   origin: "http://localhost:5173", 
   methods: 'POST,GET,PUT,PATCH,DELETE',
@@ -161,6 +170,56 @@ const validateChatInput = (body) => {
     };
 };
 
+// Efficient Gemini health check function
+const checkGeminiHealth = async () => {
+    const now = Date.now();
+    
+    // Check if we have a fresh cached result
+    if (geminiHealthCache.result && (now - geminiHealthCache.timestamp) < HEALTH_CACHE_TTL) {
+        console.log('📋 Using cached Gemini health status');
+        return geminiHealthCache.result;
+    }
+    
+    let healthResult = {
+        status: 'unknown',
+        error: null,
+        checkType: 'lightweight'
+    };
+    
+    try {
+        if (ENABLE_GEMINI_HEALTH) {
+            // Full generative test (quota-consuming)
+            console.log('🧪 Performing full Gemini generation test...');
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+            await model.generateContent("ping");
+            healthResult.status = 'operational';
+            healthResult.checkType = 'full-generation';
+        } else {
+            // Lightweight check - just verify model initialization
+            console.log('⚡ Performing lightweight Gemini check...');
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+            // Just verify the model can be instantiated without generating content
+            if (model && model.model) {
+                healthResult.status = 'operational';
+                healthResult.checkType = 'model-init';
+            } else {
+                throw new Error('Model instantiation failed');
+            }
+        }
+    } catch (error) {
+        console.log(`❌ Gemini health check failed: ${error.message}`);
+        healthResult.status = 'error';
+        healthResult.error = error.message;
+        geminiHealthCache.lastError = error.message;
+    }
+    
+    // Cache the result
+    geminiHealthCache.result = healthResult;
+    geminiHealthCache.timestamp = now;
+    
+    return healthResult;
+};
+
 // Health check endpoint
 app.get('/health', async (req, res) => {
     try {
@@ -168,26 +227,43 @@ app.get('/health', async (req, res) => {
             status: 'healthy',
             timestamp: new Date().toISOString(),
             server: 'operational',
-            geminiAI: 'checking...'
+            geminiAI: 'checking...',
+            healthConfig: {
+                geminiFullCheck: ENABLE_GEMINI_HEALTH,
+                cacheTTL: HEALTH_CACHE_TTL / 1000 + 's'
+            }
         };
         
-        try {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-            const testResult = await model.generateContent("Hello");
-            healthData.geminiAI = 'operational';
-        } catch (error) {
-            healthData.geminiAI = 'error';
-            healthData.geminiError = error.message;
+        // Perform efficient Gemini health check
+        const geminiResult = await checkGeminiHealth();
+        
+        healthData.geminiAI = geminiResult.status;
+        healthData.geminiCheckType = geminiResult.checkType;
+        
+        if (geminiResult.error) {
+            healthData.geminiError = geminiResult.error;
+        }
+        
+        // Determine overall status
+        if (geminiResult.status === 'error') {
             healthData.status = 'degraded';
+        } else if (geminiResult.status === 'unknown') {
+            // Don't mark as degraded for unknown status in lightweight mode
+            healthData.status = 'healthy';
         }
         
         const statusCode = healthData.status === 'healthy' ? 200 : 503;
         res.status(statusCode).json(healthData);
     } catch (error) {
+        console.error('🚨 Health endpoint error:', error);
         res.status(500).json({
             status: 'unhealthy',
             timestamp: new Date().toISOString(),
-            error: error.message
+            error: error.message,
+            healthConfig: {
+                geminiFullCheck: ENABLE_GEMINI_HEALTH,
+                cacheTTL: HEALTH_CACHE_TTL / 1000 + 's'
+            }
         });
     }
 });
@@ -473,5 +549,8 @@ app.listen(PORT, () => {
   console.log(`❤️ Health check available at: http://localhost:${PORT}/health`);
   console.log(`📊 Rate limiting: ${RATE_LIMIT_REQUESTS} requests per minute per IP`);
   console.log(`💾 Conversations will be cleaned up after ${CONVERSATION_TIMEOUT / (60 * 1000)} minutes of inactivity`);
+  console.log(`🏥 Health check mode: ${ENABLE_GEMINI_HEALTH ? 'Full generation test (quota-consuming)' : 'Lightweight check (quota-free)'}`);
+  console.log(`⏰ Health cache TTL: ${HEALTH_CACHE_TTL / 1000} seconds`);
+  console.log(`💡 To enable full Gemini health checks, set ENABLE_GEMINI_HEALTH=true in your .env file`);
   console.log("✅ Server ready to handle requests!\n");
 });
